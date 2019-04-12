@@ -4,15 +4,13 @@ interface IItemizeAllDelegate<T> {
     itemizeAll(): T;
 }
 
-class ItemizeAllStoreProductsDelegate implements IItemizeAllDelegate<NodeListOf<Element>> {
-    itemizeAll = (): NodeListOf<Element> => {
-        return document.querySelectorAll(".product-tile");
+class ItemizeAllProductsDelegate implements IItemizeAllDelegate<NodeListOf<Element>> {
+    private selector: string;
+    constructor(selector: string) {
+        this.selector = selector;
     }
-}
-
-class ItemizeAllWishlistProductsDelegate implements IItemizeAllDelegate<NodeListOf<Element>> {
     itemizeAll = (): NodeListOf<Element> => {
-        return document.querySelectorAll(".product-row-wrapper");
+        return document.querySelectorAll(this.selector);
     }
 }
 
@@ -84,6 +82,22 @@ class GetWishlistProductDataDelegate
     }
 }
 
+class GetSaleProductDataDelegate
+    extends GetProductDataOrDefaultDelegate
+    implements IProductDataProvider {
+        confirmInLibrary(product: Element): boolean {
+            return product.classList.contains("is-owned");
+        }
+        getDiscount(product: Element): number {
+            let basePrice = this.getPriceOrDefault(product, ".product-row-price--old ._price");
+            let newPrice = this.getPrice(product);
+            return Math.floor( 100 * (basePrice - newPrice) / basePrice);
+        }
+        getPrice(product: Element): number {
+            return this.getPriceOrDefault(product, ".product-row-price--new ._price");
+        }
+    }
+
 interface IRemoveDelegate<T> {
     remove(item: T): void;
 }
@@ -144,8 +158,9 @@ class ProductsFilter implements IProductsFilter {
 
 // Store product filter dependencies and instantiation
 let itemizeAllStoreProductsDelegate: IItemizeAllDelegate<NodeListOf<Element>> =
-    new ItemizeAllStoreProductsDelegate();
-let getStoreProductDataDelegate = new GetStoreProductDataDelegate();
+    new ItemizeAllProductsDelegate(".product-tile");
+let getStoreProductDataDelegate: IProductDataProvider = 
+    new GetStoreProductDataDelegate();
 let removeProductDelegate: IRemoveDelegate<Element> = new RemoveProductDelegate();
 let storeProductsFilter = new ProductsFilter(
     itemizeAllStoreProductsDelegate,
@@ -153,14 +168,26 @@ let storeProductsFilter = new ProductsFilter(
     removeProductDelegate);
 // Wishlist product filter dependencies and instantiation
 let itemizeAllWishlistProductsDelegate: IItemizeAllDelegate<NodeListOf<Element>> =
-    new ItemizeAllWishlistProductsDelegate();
-let getWishlistProductDataDelegate = new GetWishlistProductDataDelegate();
+    new ItemizeAllProductsDelegate(".product-row-wrapper");
+let getWishlistProductDataDelegate: IProductDataProvider = 
+    new GetWishlistProductDataDelegate();
 // we'll reuse existing removeProductDelegate
 // let removeProductDelegate: IRemoveDelegate<Element> = new RemoveProductDelegate();
 let wishlistProductsFilter = new ProductsFilter(
     itemizeAllWishlistProductsDelegate,
     getWishlistProductDataDelegate,
     removeProductDelegate);
-
+// we'll reuse existing removeProductDelegate
+// let removeProductDelegate: IRemoveDelegate<Element> = new RemoveProductDelegate();
+let itemizeAllSaleProductsDelegate: IItemizeAllDelegate<NodeListOf<Element>> = 
+    new ItemizeAllProductsDelegate(".product-row");
+let getSaleProductDataDelegate: IProductDataProvider = 
+    new GetSaleProductDataDelegate();
+let saleProductsFilter = new ProductsFilter(
+    itemizeAllSaleProductsDelegate,
+    getSaleProductDataDelegate,
+    removeProductDelegate);
+// apply all filters
 storeProductsFilter.filter(true, 50, 19.99);
 wishlistProductsFilter.filter(true, 20, 14.99);
+saleProductsFilter.filter(true, 50, 9.99);
