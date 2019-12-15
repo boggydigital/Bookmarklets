@@ -85,18 +85,18 @@ class GetWishlistProductDataDelegate
 class GetSaleProductDataDelegate
     extends GetProductDataOrDefaultDelegate
     implements IProductDataProvider {
-        confirmInLibrary(product: Element): boolean {
-            return product.classList.contains("is-owned");
-        }
-        getDiscount(product: Element): number {
-            let basePrice = this.getPriceOrDefault(product, ".product-row-price--old ._price");
-            let newPrice = this.getPrice(product);
-            return Math.floor( 100 * (basePrice - newPrice) / basePrice);
-        }
-        getPrice(product: Element): number {
-            return this.getPriceOrDefault(product, ".product-row-price--new ._price");
-        }
+    confirmInLibrary(product: Element): boolean {
+        return product.classList.contains("is-owned");
     }
+    getDiscount(product: Element): number {
+        let basePrice = this.getPriceOrDefault(product, ".product-row-price--old ._price");
+        let newPrice = this.getPrice(product);
+        return Math.floor(100 * (basePrice - newPrice) / basePrice);
+    }
+    getPrice(product: Element): number {
+        return this.getPriceOrDefault(product, ".product-row-price--new ._price");
+    }
+}
 
 interface IRemoveDelegate<T> {
     remove(item: T): void;
@@ -146,20 +146,34 @@ class ProductsFilter implements IProductsFilter {
             p => this.productDataProvider.getPrice(p) > priceThreshold)
     }
 
+    filterLowerDiscountOrHigherDiscountPriceProducts = (discountThreshold: number, priceThreshold: number) => {
+        this.filterByCondition(
+            p => {
+                let price = this.productDataProvider.getPrice(p);
+                let discount = this.productDataProvider.getDiscount(p);
+                // console.log(price);
+                // console.log(discount);
+                let filter = (discount < discountThreshold) && (price > priceThreshold);
+                // console.log(`${discount}<${discountThreshold}&&${price}>${priceThreshold}=${filter}`)
+                return filter;
+            })
+    }
+
     filter = (
         inLibrary: boolean,
         discountThreshold: number,
         priceThreshold: number): void => {
         if (inLibrary) this.filterInLibraryProducts();
-        this.filterLowerDiscountProducts(discountThreshold);
-        this.filterHigherDiscountPriceProducts(priceThreshold);
+        this.filterLowerDiscountOrHigherDiscountPriceProducts(discountThreshold, priceThreshold);
+        // this.filterLowerDiscountProducts(discountThreshold);
+        // this.filterHigherDiscountPriceProducts(priceThreshold);
     }
 }
 
 // Store product filter dependencies and instantiation
 let itemizeAllStoreProductsDelegate: IItemizeAllDelegate<NodeListOf<Element>> =
     new ItemizeAllProductsDelegate(".product-tile");
-let getStoreProductDataDelegate: IProductDataProvider = 
+let getStoreProductDataDelegate: IProductDataProvider =
     new GetStoreProductDataDelegate();
 let removeProductDelegate: IRemoveDelegate<Element> = new RemoveProductDelegate();
 let storeProductsFilter = new ProductsFilter(
@@ -169,7 +183,7 @@ let storeProductsFilter = new ProductsFilter(
 // Wishlist product filter dependencies and instantiation
 let itemizeAllWishlistProductsDelegate: IItemizeAllDelegate<NodeListOf<Element>> =
     new ItemizeAllProductsDelegate(".product-row-wrapper");
-let getWishlistProductDataDelegate: IProductDataProvider = 
+let getWishlistProductDataDelegate: IProductDataProvider =
     new GetWishlistProductDataDelegate();
 // we'll reuse existing removeProductDelegate
 // let removeProductDelegate: IRemoveDelegate<Element> = new RemoveProductDelegate();
@@ -179,15 +193,15 @@ let wishlistProductsFilter = new ProductsFilter(
     removeProductDelegate);
 // we'll reuse existing removeProductDelegate
 // let removeProductDelegate: IRemoveDelegate<Element> = new RemoveProductDelegate();
-let itemizeAllSaleProductsDelegate: IItemizeAllDelegate<NodeListOf<Element>> = 
+let itemizeAllSaleProductsDelegate: IItemizeAllDelegate<NodeListOf<Element>> =
     new ItemizeAllProductsDelegate(".product-row");
-let getSaleProductDataDelegate: IProductDataProvider = 
+let getSaleProductDataDelegate: IProductDataProvider =
     new GetSaleProductDataDelegate();
 let saleProductsFilter = new ProductsFilter(
     itemizeAllSaleProductsDelegate,
     getSaleProductDataDelegate,
     removeProductDelegate);
 // apply all filters
-storeProductsFilter.filter(true, 50, 19.99);
-wishlistProductsFilter.filter(true, 20, 14.99);
-saleProductsFilter.filter(true, 50, 9.99);
+storeProductsFilter.filter(true, 75, 7.99);
+wishlistProductsFilter.filter(true, 25, 14.99);
+saleProductsFilter.filter(true, 60, 9.99);
